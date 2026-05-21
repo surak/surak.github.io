@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Potato Me Hard</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#1a1209;--panel:#2d1f0f;--accent:#e6a817;--accent2:#c47e0e;
+    --text:#f5e6c8;--muted:#b89b6a;--green:#6ba832;--green2:#4a7a22;
+    --red:#c0392b;--gold:#ffd700;
+  }
+  html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+  body{display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px}
+
+  header{text-align:center;margin-bottom:20px}
+  h1{font-size:clamp(2rem,6vw,4rem);color:var(--accent);text-shadow:0 2px 10px rgba(230,168,23,.4);letter-spacing:-1px}
+  h1 span{display:inline-block;animation:shake 2s infinite}
+  @keyframes shake{0%,100%{transform:rotate(0)}10%{transform:rotate(-8deg)}20%{transform:rotate(8deg)}30%{transform:rotate(-5deg)}40%{transform:rotate(5deg)}50%{transform:rotate(0)}}
+  .tagline{color:var(--muted);font-size:1.1rem;margin-top:5px}
+
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:20px}
+  .tab{padding:10px 22px;border-radius:999px;border:2px solid var(--accent);background:transparent;color:var(--accent);font-weight:700;cursor:pointer;transition:all .2s;font-size:.9rem}
+  .tab:hover,.tab.active{background:var(--accent);color:var(--bg)}
+
+  .view{display:none;width:100%;max-width:700px}
+  .view.active{display:block;animation:popIn .3s ease}
+  @keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+
+  /* Clicker */
+  .clicker{display:flex;flex-direction:column;align-items:center;gap:20px}
+  .stats{display:flex;gap:20px;flex-wrap:wrap;justify-content:center}
+  .stat{background:var(--panel);padding:12px 24px;border-radius:12px;text-align:center;border:1px solid rgba(230,168,23,.15)}
+  .stat-value{font-size:1.8rem;font-weight:800;color:var(--accent)}
+  .stat-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .potato-btn{width:220px;height:220px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#c47e0e,#8B4513);border:6px solid var(--accent2);cursor:pointer;box-shadow:0 0 40px rgba(230,168,23,.25),inset 0 -10px 20px rgba(0,0,0,.3);position:relative;transition:transform .08s,box-shadow .2s;user-select:none}
+  .potato-btn::before{content:"";position:absolute;left:30%;top:20%;width:18%;height:12%;background:#5a3a1a;border-radius:50%;transform:rotate(-15deg)}
+  .potato-btn::after{content:"";position:absolute;right:28%;top:22%;width:18%;height:12%;background:#5a3a1a;border-radius:50%;transform:rotate(15deg)}
+  .potato-btn:active{transform:scale(.92)}
+  .potato-btn:hover{box-shadow:0 0 60px rgba(230,168,23,.4),inset 0 -10px 20px rgba(0,0,0,.3)}
+  #eyes{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+  .mouth{position:absolute;left:50%;top:58%;transform:translateX(-50%);width:40px;height:20px;border-bottom:4px solid #5a3a1a;border-radius:0 0 40px 40px}
+  .upgrades{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;width:100%}
+  .upgrade{background:var(--panel);border:1px solid rgba(230,168,23,.15);border-radius:12px;padding:14px;cursor:pointer;transition:all .15s;opacity:.7}
+  .upgrade:hover{opacity:1;transform:translateY(-2px);border-color:var(--accent)}
+  .upgrade.affordable{opacity:1;border-color:var(--green)}
+  .upgrade-name{font-weight:700;font-size:.95rem;margin-bottom:4px}
+  .upgrade-desc{font-size:.78rem;color:var(--muted);margin-bottom:6px}
+  .upgrade-cost{font-size:.85rem;color:var(--red);font-weight:700}
+  .upgrade-owned{font-size:.75rem;color:var(--muted);float:right}
+  .particles{position:fixed;pointer-events:none;z-index:9999}
+  .particle{position:absolute;font-size:1.2rem;font-weight:800;pointer-events:none;animation:floatUp 1s ease-out forwards;color:var(--gold)}
+  @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-100px) scale(1.5)}}
+
+  /* Potato Vision */
+  .vision{display:flex;flex-direction:column;align-items:center;gap:16px}
+  .cam-wrap{position:relative;width:100%;max-width:600px;aspect-ratio:4/3;background:#000;border-radius:16px;overflow:hidden;border:3px solid var(--panel)}
+  #video,#canvas{width:100%;height:100%;object-fit:cover;display:block}
+  #canvas{position:absolute;left:0;top:0}
+  .cam-btn{padding:14px 36px;border-radius:999px;border:none;background:var(--green);color:#fff;font-weight:800;font-size:1rem;cursor:pointer;transition:all .2s}
+  .cam-btn:hover{background:var(--green2);transform:scale(1.03)}
+  .cam-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .slider-group{width:100%;display:flex;align-items:center;gap:12px;max-width:500px}
+  .slider-group label{min-width:110px;font-size:.9rem;color:var(--muted)}
+  input[type=range]{flex:1;-webkit-appearance:none;height:8px;border-radius:4px;background:var(--panel);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);cursor:pointer;border:3px solid var(--bg)}
+
+  /* Text Potato */
+  .text-section{display:flex;flex-direction:column;gap:14px;align-items:center}
+  textarea{width:100%;max-width:600px;min-height:120px;background:var(--panel);border:2px solid rgba(230,168,23,.2);border-radius:12px;padding:16px;color:var(--text);font-size:1.05rem;resize:vertical;outline:none}
+  textarea:focus{border-color:var(--accent)}
+  .output{width:100%;max-width:600px;background:rgba(230,168,23,.08);border:2px dashed var(--accent2);border-radius:12px;padding:16px;min-height:60px;font-size:1.1rem;line-height:1.5;color:var(--text);white-space:pre-wrap;word-break:break-word}
+  .potato-btn-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .pbtn{padding:10px 24px;border-radius:999px;border:none;background:var(--accent);color:var(--bg);font-weight:800;cursor:pointer;transition:all .15s;font-size:.95rem}
+  .pbtn:hover{background:var(--gold);transform:scale(1.05)}
+
+  footer{margin-top:auto;padding-top:30px;color:var(--muted);font-size:.75rem;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span>🥔</span> Potato Me Hard <span>🥔</span></h1>
+  <p class="tagline">The only potato experience you will ever need.</p>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="clicker">Clicker</button>
+  <button class="tab" data-tab="vision">Potato Vision</button>
+  <button class="tab" data-tab="text">Text Potato</button>
+</nav>
+
+<!-- CLICKER -->
+<section id="clicker" class="view active">
+  <div class="clicker">
+    <div class="stats">
+      <div class="stat"><div class="stat-value" id="count">0</div><div class="stat-label">Potatoes</div></div>
+      <div class="stat"><div class="stat-value" id="pps">0</div><div class="stat-label">Per Second</div></div>
+      <div class="stat"><div class="stat-value" id="total">0</div><div class="stat-label">All Time</div></div>
+    </div>
+    <div class="potato-btn" id="bigPotato">
+      <svg id="eyes" viewBox="0 0 220 220"><circle cx="78" cy="58" r="10" fill="#000"/><circle cx="142" cy="58" r="10" fill="#000"/></svg>
+      <div class="mouth"></div>
+    </div>
+    <div class="upgrades" id="upgrades"></div>
+  </div>
+</section>
+
+<!-- VISION -->
+<section id="vision" class="view">
+  <div class="vision">
+    <div class="cam-wrap">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+    </div>
+    <button class="cam-btn" id="camBtn">Start Camera</button>
+    <div class="slider-group"><label>Potato-ness</label><input type="range" id="potatoAmt" min="0" max="100" value="70"></div>
+    <div class="slider-group"><label>Eyes Size</label><input type="range" id="eyeSize" min="10" max="80" value="40"></div>
+    <div class="slider-group"><label>Brownout</label><input type="range" id="brownout" min="0" max="100" value="50"></div>
+  </div>
+</section>
+
+<!-- TEXT -->
+<section id="text" class="view">
+  <div class="text-section">
+    <textarea id="inputText" placeholder="Type something normal here..."></textarea>
+    <div class="potato-btn-row">
+      <button class="pbtn" id="btnScramble">Potato Scramble</button>
+      <button class="pbtn" id="btnReplace">Total Potato</button>
+      <button class="pbtn" id="btnOWO">Potato UwU</button>
+      <button class="pbtn" id="btnCopy">Copy Output</button>
+    </div>
+    <div class="output" id="outputText">Your potato-fied text will appear here...</div>
+  </div>
+</section>
+
+<footer>made with 🥔 and zero sleep</footer>
+
+<script>
+/* ================= TABS ================= */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById(t.dataset.tab).classList.add('active');
+}));
+
+/* ================= CLICKER ================= */
+const STATE=JSON.parse(localStorage.getItem('potatoSave')||'{}');
+let potatoes=STATE.potatoes||0,total=STATE.total||0,pps=STATE.pps||0,lastTick=Date.now();
+const upgrades=[
+  {id:'farmer',name:'Potato Farmer',desc:'+1 potato/sec',baseCost:15,owned:STATE.farmer||0,add:1},
+  {id:'tractor',name:'Tractor',desc:'+5 potatoes/sec',baseCost:100,owned:STATE.tractor||0,add:5},
+  {id:'factory',name:'Spud Factory',desc:'+25 potatoes/sec',baseCost:500,owned:STATE.factory||0,add:25},
+  {id:'lab',name:'Genetic Lab',desc:'+120 potatoes/sec',baseCost:3000,owned:STATE.lab||0,add:120},
+  {id:'moon',name:'Moon Base',desc:'+800 potatoes/sec',baseCost:20000,owned:STATE.moon||0,add:800},
+  {id:'portal',name:'Potato Dimension',desc:'+5000 potatoes/sec',baseCost:150000,owned:STATE.portal||0,add:5000}
+];
+const cost=(u)=>Math.floor(u.baseCost*Math.pow(1.18,u.owned));
+function save(){
+  const s={potatoes,total,pps,ppsNow:pps,lastTick:Date.now()};
+  upgrades.forEach(u=>s[u.id]=u.owned);
+  localStorage.setItem('potatoSave',JSON.stringify(s));
+}
+function fmt(n){return n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(1)+'k':Math.floor(n)}
+function render(){
+  document.getElementById('count').textContent=fmt(potatoes);
+  document.getElementById('pps').textContent=fmt(pps);
+  document.getElementById('total').textContent=fmt(total);
+  const box=document.getElementById('upgrades');
+  box.innerHTML='';
+  upgrades.forEach(u=>{
+    const c=cost(u);
+    const el=document.createElement('div');
+    el.className='upgrade'+(potatoes>=c?' affordable':'');
+    el.innerHTML=`<div><span class="upgrade-name">${u.name}</span><span class="upgrade-owned">${u.owned}</span></div><div class="upgrade-desc">${u.desc}</div><div class="upgrade-cost">🥔 ${fmt(c)}</div>`;
+    el.onclick=()=>{if(potatoes>=c){potatoes-=c;u.owned++;pps+=u.add;render();save();}};
+    box.appendChild(el);
+  });
+}
+function spawnParticle(x,y){
+  const p=document.createElement('div');p.className='particle';p.textContent='+'+(pps>0?Math.max(1,Math.floor(pps/10+1)):1);
+  const rx=(Math.random()-.5)*60,ry=-80-Math.random()*60;
+  p.style.left=x+'px';p.style.top=y+'px';
+  p.style.setProperty('--tx',rx+'px');p.style.transform=`translate(${rx}px,0)`;
+  document.body.appendChild(p);
+  requestAnimationFrame(()=>{p.style.animation='none';p.offsetHeight;p.style.animation='floatUp 1s ease-out forwards'});
+  setTimeout(()=>p.remove(),1100);
+}
+const bigPotato=document.getElementById('bigPotato');
+bigPotato.addEventListener('mousedown',e=>{
+  const add=1+Math.floor(pps*0.1);
+  potatoes+=add;total+=add;render();save();
+  const rect=bigPotato.getBoundingClientRect();
+  spawnParticle(e.clientX,e.clientY);
+});
+setInterval(()=>{
+  if(pps>0){potatoes+=pps/10;total+=pps/10;render();save();}
+},100);
+render();
+
+/* Potatoes follow cursor eyes */
+const eyes=document.getElementById('eyes');
+document.addEventListener('mousemove',e=>{
+  const rect=bigPotato.getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const angle=Math.atan2(e.clientY-cy,e.clientX-cx);
+  const r=6;const ex=Math.cos(angle)*r,ey=Math.sin(angle)*r;
+  const c=eyes.querySelectorAll('circle');
+  c[0].setAttribute('cx',78+ex);c[0].setAttribute('cy',58+ey);
+  c[1].setAttribute('cx',142+ex);c[1].setAttribute('cy',58+ey);
+});
+
+/* ================= VISION ================= */
+const video=document.getElementById('video');
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const camBtn=document.getElementById('camBtn');
+let camOn=false,animId;
+camBtn.addEventListener('click',async()=>{
+  if(camOn){video.srcObject.getTracks().forEach(t=>t.stop());camOn=false;camBtn.textContent='Start Camera';cancelAnimationFrame(animId);return;}
+  try{const stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});
+    video.srcObject=stream;camOn=true;camBtn.textContent='Stop Camera';loop();}
+  catch(e){alert('Camera denied or unavailable: '+e.message);}
+});
+function loop(){
+  if(!camOn)return;
+  if(video.videoWidth){canvas.width=video.videoWidth;canvas.height=video.videoHeight;}
+  const w=canvas.width,h=canvas.height;
+  ctx.drawImage(video,0,0,w,h);
+  const amt=+document.getElementById('potatoAmt').value/100;
+  const eye=+document.getElementById('eyeSize').value;
+  const brn=+document.getElementById('brownout').value/100;
+  if(amt>0){
+    const imgd=ctx.getImageData(0,0,w,h);const d=imgd.data;
+    for(let i=0;i<d.length;i+=4){
+      const r=d[i],g=d[i+1],b=d[i+2];
+      const lum=.299*r+.587*g+.114*b;
+      const tr=Math.min(255,139+(lum-128)*(1-brn*.5)),tg=Math.min(255,90+(lum-128)*(1-brn*.5)),tb=Math.min(255,43+(lum-128)*(1-brn*.5));
+      d[i]=r+(tr-r)*amt;d[i+1]=g+(tg-g)*amt;d[i+2]=b+(tb-b)*amt;
+    }
+    ctx.putImageData(imgd,0,0);
+    // draw potato eyes overlay
+    const ew=eye*w/400,eh=eye*h/300;
+    const cx=w/2,cy=h/2,sep=w*.18;
+    ctx.fillStyle=`rgba(90,58,26,${amt*.7})`;ctx.strokeStyle=`rgba(60,40,20,${amt*.9})`;ctx.lineWidth=3;
+    // left eye
+    ctx.beginPath();ctx.ellipse(cx-sep,cy-10,ew,eh,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // right eye
+    ctx.beginPath();ctx.ellipse(cx+sep,cy-10,ew,eh,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+    // pupils
+    ctx.fillStyle=`rgba(20,10,5,${amt*.9})`;
+    ctx.beginPath();ctx.arc(cx-sep+ew*.3,cy-10+eh*.1,ew*.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(cx+sep+ew*.3,cy-10+eh*.1,ew*.2,0,Math.PI*2);ctx.fill();
+    // mouth
+    ctx.beginPath();
+    ctx.arc(cx,cy+eh*1.2,ew*.8,0.2*Math.PI,0.8*Math.PI);
+    ctx.strokeStyle=`rgba(90,58,26,${amt*.8})`;ctx.lineWidth=5;ctx.stroke();
+  }
+  animId=requestAnimationFrame(loop);
+}
+
+/* ================= TEXT ================= */
+const input=document.getElementById('inputText');
+const output=document.getElementById('outputText');
+function set(t){output.textContent=t||'Your potato-fied text will appear here...';}
+document.getElementById('btnScramble').onclick=()=>{
+  const t=input.value;if(!t)return;
+  const words=t.split(/\b/);const out=words.map(w=>{
+    if(/^[a-zA-Z]+$/.test(w)&&Math.random()>.3){
+      const opts=['potato','spud','tuber','starch','root','fry','mash','crisp'];
+      return opts[Math.floor(Math.random()*opts.length)];
+    }return w;
+  }).join('');set(out);
+};
+document.getElementById('btnReplace').onclick=()=>{
+  const t=input.value;if(!t)return;
+  set(t.replace(/\b\w+\b/g,'potato'));
+};
+document.getElementById('btnOWO').onclick=()=>{
+  const t=input.value;if(!t)return;
+  let o=t.replace(/[rl]/g,'w').replace(/[RL]/g,'W');
+  o=o.replace(/!/g,'!!! 🥔').replace(/\?/g,'? OwO?');
+  set(o+' 🥔✨');
+};
+document.getElementById('btnCopy').onclick=()=>{
+  navigator.clipboard.writeText(output.textContent).then(()=>{
+    const b=document.getElementById('btnCopy');const old=b.textContent;b.textContent='Copied!';setTimeout(()=>b.textContent=old,1200);
+  });
+};
+</script>
+</body>
+</html>
